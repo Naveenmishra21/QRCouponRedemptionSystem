@@ -12,20 +12,20 @@ namespace QRCouponRedemptionSystem.Business
         {
             _context = context;
         }
-        public async Task<Tuple<bool,string>> CheckUserExists(string username, string password)
+        public async Task<Tuple<bool,string,string>> CheckUserExists(string username, string password)
         {
             using var connection = _context.CreateConnection();
 
-            var storedHash = await connection.ExecuteScalarAsync<string>(
-                "SELECT Password FROM Users WHERE Username = @Username",
+            var userdata = await connection.QueryFirstOrDefaultAsync<User>(
+                "SELECT * FROM Users WHERE Username = @Username",
                 new { Username = username });
 
-            if (storedHash == null)
-                return Tuple.Create(false, "");
+            if (userdata?.Password == null)
+                return Tuple.Create(false, "","");
 
-            var isvaild = PasswordHelper.VerifyPassword(password, storedHash);
+            var isvaild = PasswordHelper.VerifyPassword(password, userdata?.Password);
 
-            return Tuple.Create(isvaild, isvaild ? username : "");
+            return Tuple.Create(isvaild, isvaild ? username : "",userdata.UserType);
         }
 
         public async Task<bool> RegisterUser(User dto)
@@ -41,14 +41,15 @@ namespace QRCouponRedemptionSystem.Business
 
             var hashedPassword = PasswordHelper.HashPassword(dto.Password);
 
-            var query = @"INSERT INTO Users (Username, Email, Password)
-                      VALUES (@Username, @Email, @Password)";
+            var query = @"INSERT INTO Users (Id, Username, Email, Password, Usertype)
+                            VALUES (@Id, @Username, @Email, @Password, @Usertype)";
 
             var result = await connection.ExecuteAsync(query, new
-            {
+            {   dto.Id,
                 dto.Username,
                 dto.Email,
-                Password = hashedPassword
+                Password = hashedPassword,
+                dto.UserType
             });
 
             return result > 0;

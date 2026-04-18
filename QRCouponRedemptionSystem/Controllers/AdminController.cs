@@ -5,7 +5,6 @@ using QRCouponRedemptionSystem.Model;
 
 namespace QRCouponRedemptionSystem.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class AdminController : ControllerBase

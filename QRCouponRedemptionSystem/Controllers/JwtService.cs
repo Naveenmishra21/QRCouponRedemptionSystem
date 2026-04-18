@@ -14,7 +14,7 @@ namespace QRCouponRedemptionSystem.Controllers
             {
                 _config = config;
             }
-            public string GenerateToken(string username)
+            public string GenerateToken(string username ,string userType)
             {
                 var jwtSettings = _config.GetSection("Jwt");
                 var key = new SymmetricSecurityKey(
@@ -25,8 +25,11 @@ namespace QRCouponRedemptionSystem.Controllers
 
                 var claims = new[]
                 {
-                new Claim(ClaimTypes.Name, username)
-            };
+
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.Role, userType)
+
+                };
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
