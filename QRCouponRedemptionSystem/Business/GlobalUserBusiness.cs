@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QRCouponRedemptionSystem.Controllers;
 using QRCouponRedemptionSystem.Model;
+using System.Transactions;
 
 namespace QRCouponRedemptionSystem.Business
 {
@@ -51,7 +52,18 @@ namespace QRCouponRedemptionSystem.Business
                 Password = hashedPassword,
                 dto.UserType
             });
-
+            if (result > 0)
+            {
+                var WalletId = Guid.NewGuid().ToString();
+                await connection.ExecuteAsync(
+                    @"INSERT INTO Wallets (Id, UserId, Balance) 
+                                   VALUES (@Id,@UserId, 0)",
+                    new
+                    {
+                        Id = WalletId,
+                        UserId = dto.Id
+                    });
+            }
             return result > 0;
         }
     }

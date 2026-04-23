@@ -16,21 +16,21 @@ namespace QRCouponRedemptionSystem.Controllers
             _adminBusiness = adminBusiness;
         }
 
-        [HttpPost("campaign")]
+        [HttpPost("CreateCampaign")]
         public async Task<IActionResult> CreateCampaign([FromBody] Campaigns campaign)
         {
             var result = await _adminBusiness.CreateCampaignAsync(campaign);
             return Ok(new { message = result });
         }
 
-        [HttpPost("coupon")]
+        [HttpPost("CreateCoupon")]
         public async Task<IActionResult> CreateCoupon([FromBody] Coupon coupon)
         {
             var result = await _adminBusiness.CreateCouponAsync(coupon);
             return Ok(new { message = result });
         }
 
-        [HttpPost("reconcile")]
+        [HttpPost("Reconcile")]
         public async Task<IActionResult> Reconcile()
         {
             var result = await _adminBusiness.ReconcileAsync();

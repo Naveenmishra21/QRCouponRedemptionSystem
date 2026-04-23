@@ -7,7 +7,6 @@ using System.Transactions;
 
 namespace QRCouponRedemptionSystem.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class CouponController : ControllerBase
@@ -19,15 +18,17 @@ namespace QRCouponRedemptionSystem.Controllers
             _couponService = couponService;
         }
         [HttpPost("redeem")]
-        public async Task<IActionResult> Redeem(string CouponCode, [FromHeader(Name = "Idempotency-Key")] string idempotencyKey)
+        public async Task<IActionResult> Redeem(string CouponCode,  string userId)
         {
-            if (string.IsNullOrEmpty(idempotencyKey))
-                return BadRequest("Idempotency-Key required");
-
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            if (string.IsNullOrEmpty(CouponCode))
+                return BadRequest("CouponCode required");
+            if(string.IsNullOrEmpty(userId))
+                return BadRequest("UserId required");
+            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
             try
             {
+                string idempotencyKey = Guid.NewGuid().ToString(); 
                 var result = await _couponService.RedeemAsync(userId, CouponCode, idempotencyKey);
                 return Ok(result);
             }
@@ -39,11 +40,11 @@ namespace QRCouponRedemptionSystem.Controllers
 
         [Authorize]
         [HttpGet("wallet")]
-        public async Task<IActionResult> GetWalletBalance()
+        public async Task<IActionResult> GetWalletBalance(string userId)
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
                 var balance = await _couponService.GetWalletBalanceAsync(userId);
 

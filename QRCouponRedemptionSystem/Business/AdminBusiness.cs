@@ -20,8 +20,8 @@ namespace QRCouponRedemptionSystem.Business
             connection.Open();
 
             var sql = @"
-                INSERT INTO Campaigns (Name, StartDate, EndDate, CreatedAt)
-                VALUES (@Name, @StartDate, @EndDate, GETUTCDATE())";
+                INSERT INTO Campaigns (Id,Name, StartDate, EndDate)
+                VALUES (@Id,@Name, @StartDate, @EndDate)";
 
             await connection.ExecuteAsync(sql, campaign);
 
@@ -43,8 +43,8 @@ namespace QRCouponRedemptionSystem.Business
 
             var sql = @"
                 INSERT INTO Coupons 
-                (Code, CampaignId, Amount, ExpiryDate, IsRedeemed)
-                VALUES (@Code, @CampaignId, @Amount, @ExpiryDate, 0)";
+                (Id,Code, CampaignId, Amount, ExpiryDate, IsRedeemed)
+                VALUES (@Id,@Code, @CampaignId, @Amount, @ExpiryDate, 0)";
 
             await connection.ExecuteAsync(sql, coupon);
 
@@ -60,7 +60,7 @@ namespace QRCouponRedemptionSystem.Business
 
             try
             {
-                // ✅ Find inconsistent records
+                //  Find inconsistent records
                 var inconsistentTxns = await connection.QueryAsync<dynamic>(
                     @"
                     SELECT t.Id, t.UserId, t.CouponId

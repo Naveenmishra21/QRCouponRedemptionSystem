@@ -46,9 +46,5 @@ namespace QRCouponRedemptionSystem.Controllers
             return Ok("User registered successfully");
         }
 
-
-
-
-
     }
 }
