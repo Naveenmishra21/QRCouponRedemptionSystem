@@ -16,39 +16,52 @@ namespace QRCouponRedemptionSystem.Business
 
         public async Task<string> CreateCampaignAsync(Campaigns campaign)
         {
-            using var connection = _context.CreateConnection();
-            connection.Open();
+            try
+            {
+                using var connection = _context.CreateConnection();
+                connection.Open();
 
-            var sql = @"
+                var sql = @"
                 INSERT INTO Campaigns (Id,Name, StartDate, EndDate)
                 VALUES (@Id,@Name, @StartDate, @EndDate)";
 
-            await connection.ExecuteAsync(sql, campaign);
+                await connection.ExecuteAsync(sql, campaign);
 
-            return "Campaign created successfully";
+                return "Campaign created successfully";
+            }
+            catch(Exception ex) { 
+            
+            return $"Error creating campaign: {ex.Message}";
+            }
+
         }
 
         public async Task<string> CreateCouponAsync(Coupon coupon)
         {
-            using var connection = _context.CreateConnection();
-            connection.Open();
+            try
+            {
+                using var connection = _context.CreateConnection();
+                connection.Open();
+                var campaign = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT Id FROM Campaigns WHERE Id = @Id",
+                    new { Id = coupon.CampaignId });
 
-            // ✅ Validate campaign exists
-            var campaign = await connection.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT Id FROM Campaigns WHERE Id = @Id",
-                new { Id = coupon.CampaignId });
+                if (campaign == null)
+                    throw new Exception("Invalid campaign");
 
-            if (campaign == null)
-                throw new Exception("Invalid campaign");
-
-            var sql = @"
+                var sql = @"
                 INSERT INTO Coupons 
                 (Id,Code, CampaignId, Amount, ExpiryDate, IsRedeemed)
                 VALUES (@Id,@Code, @CampaignId, @Amount, @ExpiryDate, 0)";
 
-            await connection.ExecuteAsync(sql, coupon);
+                await connection.ExecuteAsync(sql, coupon);
 
-            return "Coupon created successfully";
+                return "Coupon created successfully";
+            }
+            catch (Exception ex)
+            {
+                return $"Error creating coupon: {ex.Message}";
+            }
         }
 
         public async Task<object> ReconcileAsync()
@@ -60,7 +73,6 @@ namespace QRCouponRedemptionSystem.Business
 
             try
             {
-                //  Find inconsistent records
                 var inconsistentTxns = await connection.QueryAsync<dynamic>(
                     @"
                     SELECT t.Id, t.UserId, t.CouponId
@@ -75,15 +87,11 @@ namespace QRCouponRedemptionSystem.Business
 
                 foreach (var txn in inconsistentTxns)
                 {
-                    // ✅ Fix coupon state
-                    await connection.ExecuteAsync(
-                        @"
-                        UPDATE Coupons
-                        SET IsRedeemed = 1,
+                    await connection.ExecuteAsync( 
+                        @"UPDATE Coupons SET IsRedeemed = 1,
                             RedeemedBy = @UserId,
                             RedeemedAt = GETUTCDATE()
-                        WHERE Id = @CouponId
-                        ",
+                            WHERE Id = @CouponId",
                         new { txn.UserId, txn.CouponId },
                         transaction);
 
@@ -91,7 +99,6 @@ namespace QRCouponRedemptionSystem.Business
                 }
 
                 transaction.Commit();
-
                 return new
                 {
                     message = "Reconciliation completed",

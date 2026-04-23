@@ -21,12 +21,12 @@ namespace QRCouponRedemptionSystem.Business
             connection.Open();
             try
             {
-                  using var transaction = connection.BeginTransaction();
+                using var transaction = connection.BeginTransaction();
                 try
                 {
                     var existingTxn = await connection.QueryFirstOrDefaultAsync<Transactions>(
                         @"SELECT * FROM Transactions WITH (UPDLOCK, HOLDLOCK)
-              WHERE IdempotencyKey = @Key",
+                          WHERE IdempotencyKey = @Key",
                         new { Key = idempotencyKey },
                         transaction);
 
@@ -43,7 +43,7 @@ namespace QRCouponRedemptionSystem.Business
 
                     var coupon = await connection.QueryFirstOrDefaultAsync<Coupon>(
                         @"SELECT * FROM Coupons WITH (UPDLOCK, ROWLOCK)
-              WHERE Code = @Code",
+                          WHERE Code = @Code",
                         new { Code = couponCode },
                         transaction);
 
@@ -63,55 +63,49 @@ namespace QRCouponRedemptionSystem.Business
                         transaction);
 
                     if (wallet == null)
-                    { var WalletId = Guid.NewGuid().ToString();
+                    {
+                        var WalletId = Guid.NewGuid().ToString();
                         await connection.ExecuteAsync(
                             @"INSERT INTO Wallets (Id, UserId, Balance) 
                                    VALUES (@Id,@UserId, 0)",
-                            new {
+                            new
+                            {
                                 Id = WalletId,
-                                UserId = userId },
-                                transaction
-                                );
+                                UserId = userId
+                            }, transaction);
                     }
                     var Id = Guid.NewGuid().ToString();
                     var txnId = await connection.ExecuteScalarAsync<int>(
                         @"INSERT INTO Transactions 
-              (Id,UserId, CouponId, Amount, Status, IdempotencyKey, CreatedAt)
-              VALUES (@Id, @UserId, @CouponId, @Amount, 'Pending', @Key, GETUTCDATE());
-              SELECT CAST(SCOPE_IDENTITY() as int);",
+                          (Id,UserId, CouponId, Amount, Status, IdempotencyKey, CreatedAt)
+                          VALUES (@Id, @UserId, @CouponId, @Amount, 'Pending', @Key, GETUTCDATE());
+                          SELECT CAST(SCOPE_IDENTITY() as int);",
                         new
                         {
-                            Id= Id,
+                            Id = Id,
                             UserId = userId,
-                            CouponId = coupon.Id, 
+                            CouponId = coupon.Id,
                             Amount = coupon.Amount,
                             Key = idempotencyKey
                         },
                         transaction);
 
                     await connection.ExecuteAsync(
-                        @"UPDATE Wallets 
-              SET Balance = Balance + @Amount
-              WHERE UserId = @UserId",
+                        @"UPDATE Wallets SET Balance = Balance + @Amount  WHERE UserId = @UserId",
                         new { Amount = coupon.Amount, UserId = userId },
                         transaction);
 
                     await connection.ExecuteAsync(
-                        @"UPDATE Coupons 
-              SET IsRedeemed = 1,
-                  RedeemedBy = @UserId,
-                  RedeemedAt = GETUTCDATE()
-              WHERE Id = @CouponId",
+                        @"UPDATE Coupons SET IsRedeemed = 1,
+                        RedeemedBy = @UserId,RedeemedAt = GETUTCDATE()
+                        WHERE Id = @CouponId",
                         new { UserId = userId, CouponId = coupon.Id },
-                        transaction);
+                         transaction);
 
                     await connection.ExecuteAsync(
-                        @"UPDATE Transactions 
-              SET Status = 'Success'
-              WHERE Id = @TxnId",
+                        @"UPDATE Transactions SET Status = 'Success' WHERE Id = @TxnId",
                         new { TxnId = txnId },
                         transaction);
-
                     transaction.Commit();
 
                     return new
@@ -142,7 +136,7 @@ namespace QRCouponRedemptionSystem.Business
             }
         }
 
-        public async Task<decimal> GetWalletBalanceAsync(string  userId)
+        public async Task<decimal> GetWalletBalanceAsync(string userId)
         {
             using var connection = _db.CreateConnection();
             connection.Open();
@@ -154,7 +148,7 @@ namespace QRCouponRedemptionSystem.Business
                 new { UserId = userId });
 
             if (balance == null)
-                return 0; 
+                return 0;
 
             return balance.Value;
         }
